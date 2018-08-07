@@ -3,17 +3,27 @@ using UnityEngine;
 
 public class PlayerController : MonoBehaviour {
     Rigidbody2D RB;
-    SpriteRenderer SR;    
+    SpriteRenderer SR;
+    Animator AN; 
     public float speed = 3;
-
+    public Transform heroParent = null;
+    bool isInvinc;
+    float invincibleTime;
+    public float MaxInvicibleTime;
+    public static PlayerController current;
+    
     private void Awake()
     {
         RB = GetComponent<Rigidbody2D>();
         SR = GetComponent<SpriteRenderer>();
-    }
+        AN = GetComponent<Animator>();
+        current = this;
+    } 
     private void Start()
     {
-        RB.freezeRotation = true;   
+        heroParent = transform.parent;
+        RB.freezeRotation = true;
+        LevelController.current.setStartPosition(transform.position);
     }
     void FixedUpdate()
     {
@@ -28,22 +38,44 @@ public class PlayerController : MonoBehaviour {
             {
                 SR.flipX = true;
             }
-            else 
+            else
             {
                 SR.flipX = false;
             }
         }
-        float value1 = Input.GetAxis("Vertical");
-        if (Mathf.Abs(value1) > 0)
+        if (isInvinc)
         {
-            Vector2 vel = RB.velocity;
-            vel.y = value1 * speed;
-            RB.velocity = vel;
+            invincibleTime -= Time.deltaTime;
+            GetComponent<SpriteRenderer>().material.color =
+                new Color(1, 1 - invincibleTime % 1 / 2, 1 - invincibleTime % 1 / 2);
+            if (invincibleTime < 0)
+            {
+                isInvinc = false;
+                GetComponent<SpriteRenderer>().material.color =
+                    new Color(1, 1, 1);
+            }
+
         }
 
+        AN.SetBool("IsRunning", Mathf.Abs(value) > 0);
     }
-    private void Update()
+    public static void SetNewParent(Transform obj, Transform new_parent)
     {
-        Debug.Log(Time.deltaTime);
+        if (obj.transform.parent != new_parent)
+        {
+            //Сохраняем позицию в Глобальных координатах
+            Vector3 pos = obj.transform.position;
+            //Устанавливаем нового отца
+            obj.transform.parent = new_parent;
+            //После изменения отца координаты кролика изменятся
+            //Поскольку они теперь относительно другого объекта
+            //возвращаем кролика в те же глобальные координаты
+            obj.transform.position = pos;
+        }
+    }
+    public void makeinvincible()
+    {
+        isInvinc = true;
+        invincibleTime = MaxInvicibleTime;  
     }
 }
